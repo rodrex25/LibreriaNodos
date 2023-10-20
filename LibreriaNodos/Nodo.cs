@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
@@ -138,8 +139,26 @@ namespace LibreriaNodos
                 
             
         }
+        protected User FindUser(User user)
+        {
 
-        
+
+
+            //verificar si existe en la lista actual
+            User findUser = this.userList.Find(useri => useri.getUserIpAdress == user.getUserIpAdress);
+
+            if (findUser != null)
+            {
+
+                return findUser;
+
+            }
+
+            return null;
+
+        }
+
+
         //handle new message
         protected void HandleMessages(Message message) {
 

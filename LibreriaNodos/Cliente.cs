@@ -37,10 +37,14 @@ namespace LibreriaNodos
 
         public void connNode(User user)
         {
+            if (this.FindUser(user) != null) {
 
-            TcpClient userTcpClient = new TcpClient(user.getUserIpAdress(), user.getUserPort());
-            Send(userTcpClient, localUser);
-            ThreadPool.QueueUserWorkItem(this.HandleConn, userTcpClient);
+                TcpClient userTcpClient = new TcpClient(user.getUserIpAdress(), user.getUserPort());
+                Send(userTcpClient, localUser);
+                ThreadPool.QueueUserWorkItem(this.HandleConn, userTcpClient);
+
+            }
+            
 
         }
 
