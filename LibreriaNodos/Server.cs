@@ -6,7 +6,35 @@ using System.Threading.Tasks;
 
 namespace LibreriaNodos
 {
-    internal class Server
+    public class Server:Nodo
     {
+        
+        public Server (User user) : base(user)
+        {
+            
+        }
+
+        public void ServerStart()
+        {
+
+            this.start();
+
+
+        }
+
+        public void ServerBroadcastUserOnlineList() {
+
+            foreach (Nodo nodo in this.nodes) {
+
+                Send(nodo.GetTcpClient(), this.userList);
+
+            }
+            
+        }
+
+        public void ServerStop()
+        {
+            this.ServerStop();
+        }
     }
 }

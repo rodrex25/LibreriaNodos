@@ -11,37 +11,60 @@ using System.Threading.Tasks;
 
 namespace LibreriaNodos
 {
-    internal class Nodo
+    public  class Nodo
     {
         //atributos
-        private TcpListener tcpListener;
+        protected TcpListener tcpListener;
 
-        private TcpClient tcpClient;
-        
-        private List<User> userList;
+        protected TcpClient tcpClient { get; set; }
 
-        private List<Nodo> nodes;
+        protected List<User> userList;
 
-        private LinkedList<Message> messages;
+        protected List<Nodo> nodes;
 
-        private User localUser;
+        protected LinkedList<Message> messages;
+
+        protected User localUser;
+
+        protected string fileDirectory;
+
+       
 
         //constructor
-        public Nodo(IPAddress ipAddress, int Port) {
+        public Nodo(User user) {
+
+            
+            this.localUser = user;
+            this.userList = new List<User>();
+            this.nodes = new List<Nodo>();
+            this.messages = new LinkedList<Message>();
 
 
-            this.tcpListener = new TcpListener(ipAddress, Port);
-
-        
         }
+       
 
+        public void start()
+        {
+            IPAddress localIp = IPAddress.Parse(this.localUser.getUserIpAdress());
+
+            this.tcpListener = new TcpListener(localIp, this.localUser.getUserPort());
+
+            //el nodo escucha
+            tcpListener.Start();
+
+        }
+        public void stop()
+        {
+            tcpListener.Stop();
+        }
          
         
 
         public void Listen()
         {
-            //el nodo escucha
-            tcpListener.Start();
+            
+
+           
 
             //si se conecta un usuario le hace un hilo
 
@@ -58,7 +81,7 @@ namespace LibreriaNodos
 
         //usuario que se conecta
 
-       private void HandleConn(Object tcpClient) {
+       protected void HandleConn(Object tcpClient) {
 
             Object recived = Recive((TcpClient)tcpClient);
 
@@ -67,11 +90,12 @@ namespace LibreriaNodos
                 if (recived is User)
                 {
                     //handle new user 
-                    this.HandleUser((User)recived);
+                    this.HandleUser((User)recived, (TcpClient)tcpClient);
 
                 }
                 else if (recived is Message) 
                 {
+                    
                     //handle new message
                     this.HandleMessages((Message)recived);
                 }
@@ -90,27 +114,87 @@ namespace LibreriaNodos
         //handle new user
 
         //pendiente
-        private void HandleUser(User user) { 
+        protected void HandleUser(User user, TcpClient tcpCLient) {
+
+
+
             //verificar si existe en la lista actual
-            //si no agregarlo y generar una instancia Nodo y agregar a la lista de nodos
+            User findUser = this.userList.Find(useri => useri.getUserIpAdress == user.getUserIpAdress);
+
+            if (findUser != null)
+            {
+                //anadimos a lista de usuarios
+                this.userList.Add(user);
+                //creamos un nodo
+                Nodo tempNodo = new Nodo(user);
+                tempNodo.setTcpClient(tcpCLient);
+                //añadimos a la lista de nodos 
+                this.nodes.Add(tempNodo);
+                //
+
+
+            }
+            
+                
             
         }
 
-        //pendiente
+        
         //handle new message
-        private void HandleMessages(Message message) { 
-            messages.AddLast(message);
+        protected void HandleMessages(Message message) {
+
+            if (message is FileMessage)
+            {
+                try
+                {
+
+
+                    HandleFileMessage((FileMessage)message, fileDirectory);
+
+                }
+                catch (Exception ex) { Console.WriteLine(ex.Message); }
+            }
+            
+
+                messages.AddLast(message);
+            
+            
         }
 
-        //pendiente
+        public void HandleFileMessage(FileMessage fileMessage, String directorio) {
+
+            string finalDirectory = directorio + fileMessage.getUserFrom();
+
+            if (fileMessage != null && fileMessage.getFileData() != null)
+            {
+
+                if (!Directory.Exists(finalDirectory))
+                {
+                    Directory.CreateDirectory(finalDirectory);
+                }
+
+                string filePath = Path.Combine(finalDirectory, fileMessage.getMessageContent());
+
+                File.WriteAllBytes(filePath, fileMessage.getFileData());
+
+                Console.WriteLine("se guardo un archivo en: " + finalDirectory);
+
+            }
+            else {
+                Console.WriteLine("no se guardo ni recibio nada valido" + finalDirectory);
+            }
+            
+        }
+
+
         //handle list users update
-        private void HandleListUsers(List<User> users)
+        protected void HandleListUsers(List<User> users)
         {
             this.userList = users;
 
         }
 
-        private object Recive(TcpClient tcpClient)
+        protected object Recive(TcpClient tcpClient)
         {
             //binariza
             BinaryFormatter formatter = new BinaryFormatter();
@@ -126,18 +210,47 @@ namespace LibreriaNodos
         }
 
         //enviar
-       public void Send(TcpClient tcpClient, Object objeto)
+        protected void Send(TcpClient tcpClient, Object objeto)
         {
+
+            
             //obtiene el strem de red
             NetworkStream stream = tcpClient.GetStream();
+
             //binarizar 
             IFormatter formatter = new BinaryFormatter();
-
+           
             //envia al cliente
             formatter.Serialize(stream, objeto);
+            
+            
 
         }
 
         //getters
+
+        public User getLocalUser()
+        {
+            return this.localUser;
+        }
+
+        public TcpClient GetTcpClient()
+        {
+            return this.tcpClient;
+        }
+        //setters
+        public void setTcpClient(TcpClient tcpClient)
+        {
+            this.tcpClient = tcpClient;
+
+        }
+
+        public void setDirectory(string direction)
+        {
+            this.fileDirectory = direction;
+        }
+
+
+
     }
 }

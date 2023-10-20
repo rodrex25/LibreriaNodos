@@ -12,10 +12,13 @@ namespace LibreriaNodos
 
         //atributos
         private string filePath;
+        private byte[] fileData;
+       
         //constructor
         public FileMessage(string userFrom, string userTo, string messageContent, string filePath) : base(userFrom, userTo, messageContent) { 
 
             this.filePath = filePath;
+            this.fileData = File.ReadAllBytes(this.filePath);
         
         }
 
@@ -24,6 +27,11 @@ namespace LibreriaNodos
 
             return filePath;
             
+        }
+
+        public byte[] getFileData()
+        {
+            return fileData;
         }
 
 
