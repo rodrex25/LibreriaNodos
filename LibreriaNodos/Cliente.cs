@@ -30,6 +30,7 @@ namespace LibreriaNodos
         public void connServer() { 
 
             this.clientServerTcpClient = new TcpClient(this.serverIpAddress, this.serverPort);
+            Send(clientServerTcpClient, localUser);
             ThreadPool.QueueUserWorkItem(this.HandleConn, this.clientServerTcpClient);
             
         }
