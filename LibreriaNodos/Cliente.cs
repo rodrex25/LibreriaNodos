@@ -41,6 +41,11 @@ namespace LibreriaNodos
 
                 TcpClient userTcpClient = new TcpClient(user.getUserIpAdress(), user.getUserPort());
                 Send(userTcpClient, localUser);
+                Nodo tempNodo = new Nodo(user);
+                tempNodo.setTcpClient(clientServerTcpClient);
+
+                this.nodes.Add(tempNodo);
+
                 ThreadPool.QueueUserWorkItem(this.HandleConn, userTcpClient);
 
             }
