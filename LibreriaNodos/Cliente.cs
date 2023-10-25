@@ -53,6 +53,17 @@ namespace LibreriaNodos
 
         }
 
+        public void stopClient()
+        {
+            foreach (Nodo nodo in this.nodes)
+            {
+
+                Send(nodo.GetTcpClient(), this.localUser);
+
+            }
+
+        }
+
 
     }
 }
