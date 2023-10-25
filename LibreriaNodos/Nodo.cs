@@ -133,6 +133,7 @@ namespace LibreriaNodos
                 //añadimos a la lista de nodos 
                 this.nodes.Add(tempNodo);
                 //
+                Console.WriteLine("Se ha conectado el usuario" + user.getUserName() + " ip: " + user.getUserIpAdress());
 
 
             }
