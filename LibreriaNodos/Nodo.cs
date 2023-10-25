@@ -10,10 +10,11 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace LibreriaNodos
 {
-    public  class Nodo
+    public class Nodo
     {
         //atributos
         protected TcpListener tcpListener;
@@ -30,12 +31,13 @@ namespace LibreriaNodos
 
         protected string fileDirectory;
 
-       
+
 
         //constructor
-        public Nodo(User user) {
+        public Nodo(User user)
+        {
 
-            
+
             this.localUser = user;
             this.userList = new List<User>();
             this.nodes = new List<Nodo>();
@@ -43,7 +45,7 @@ namespace LibreriaNodos
 
 
         }
-       
+
 
         public void start()
         {
@@ -59,18 +61,18 @@ namespace LibreriaNodos
         {
             tcpListener.Stop();
         }
-         
-        
+
+
 
         public void Listen()
         {
-            
 
-           
+
+
 
             //si se conecta un usuario le hace un hilo
 
-            
+
             while (true)
             {
                 //
@@ -83,7 +85,8 @@ namespace LibreriaNodos
 
         //usuario que se conecta
 
-       protected void HandleConn(Object tcpClient) {
+        protected void HandleConn(Object tcpClient)
+        {
 
             Object recived = Recive((TcpClient)tcpClient);
 
@@ -94,10 +97,11 @@ namespace LibreriaNodos
                     //handle new user 
                     this.HandleUser((User)recived, (TcpClient)tcpClient);
 
+
                 }
-                else if (recived is Message) 
+                else if (recived is Message)
                 {
-                    
+
                     //handle new message
                     this.HandleMessages((Message)recived);
                 }
@@ -108,7 +112,8 @@ namespace LibreriaNodos
                 }
 
             }
-            else {
+            else
+            {
                 Console.WriteLine("No se recibio nada");
             }
         }
@@ -116,14 +121,15 @@ namespace LibreriaNodos
         //handle new user
 
         //pendiente
-        protected void HandleUser(User user, TcpClient tcpCLient) {
+        protected void HandleUser(User user, TcpClient tcpCLient)
+        {
 
 
 
             //verificar si existe en la lista actual
             User findUser = this.userList.Find(useri => useri.getUserIpAdress == user.getUserIpAdress);
 
-            if (findUser != null)
+            if (findUser == null)
             {
                 //anadimos a lista de usuarios
                 this.userList.Add(user);
@@ -137,9 +143,9 @@ namespace LibreriaNodos
 
 
             }
-            
-                
-            
+
+
+
         }
         protected User FindUser(User user)
         {
@@ -162,7 +168,8 @@ namespace LibreriaNodos
 
 
         //handle new message
-        protected void HandleMessages(Message message) {
+        protected void HandleMessages(Message message)
+        {
 
             if (message is FileMessage)
             {
@@ -175,14 +182,15 @@ namespace LibreriaNodos
                 }
                 catch (Exception ex) { Console.WriteLine(ex.Message); }
             }
-            
 
-                messages.AddLast(message);
-            
-            
+
+            messages.AddLast(message);
+
+
         }
 
-        public void HandleFileMessage(FileMessage fileMessage, String directorio) {
+        public void HandleFileMessage(FileMessage fileMessage, String directorio)
+        {
 
             string finalDirectory = directorio + fileMessage.getUserFrom();
 
@@ -201,10 +209,11 @@ namespace LibreriaNodos
                 Console.WriteLine("se guardo un archivo en: " + finalDirectory);
 
             }
-            else {
+            else
+            {
                 Console.WriteLine("no se guardo ni recibio nada valido" + finalDirectory);
             }
-            
+
         }
 
 
@@ -222,31 +231,55 @@ namespace LibreriaNodos
 
             //lo recibe en stream del cliente
             NetworkStream stream = tcpClient.GetStream();
+            byte[] data = new byte[1024];
+            try {
+                int bytes = stream.Read(data, 0, data.Length);
+                if (bytes > 0)
+                {
+                    string recived = Encoding.UTF8.GetString(data, 0, bytes);
+                    object obj = JsonConvert.DeserializeObject<Object>(recived);
+                    return obj;
+                }
+            } catch (Exception e) {
+                Console.WriteLine(e.Message);
+                    return null;
+            }
 
-            formatter.Binder = new CurrentAssemblyDeserializationBinder();
+            return null;
+            //formatter.Binder = new CurrentAssemblyDeserializationBinder();
 
             //genera el objeto y los deserializa el stream recibido
-            Object newObj = (Object)formatter.Deserialize(stream);
+            //Object newObj = (Object)formatter.Deserialize(stream);
 
-            return newObj;
 
         }
 
-        //enviar
+        //enviar/
+
+
+
         protected void Send(TcpClient tcpClient, Object objeto)
         {
 
-            
+
             //obtiene el strem de red
             NetworkStream stream = tcpClient.GetStream();
+            string json = JsonConvert.SerializeObject(objeto);
+            byte[] data = Encoding.UTF8.GetBytes(json);
+            stream.Write(data, 0, data.Length);
+
 
             //binarizar 
-            IFormatter formatter = new BinaryFormatter();
-           
+            //IFormatter formatter = new BinaryFormatter();
+
+
+
+            //
+
             //envia al cliente
-            formatter.Serialize(stream, objeto);
-            
-            
+            // formatter.Serialize(stream, objeto);
+
+
 
         }
 
@@ -261,6 +294,12 @@ namespace LibreriaNodos
         {
             return this.tcpClient;
         }
+
+        public List<User> GetUsers()
+        {
+            return this.userList;
+        }
+
         //setters
         public void setTcpClient(TcpClient tcpClient)
         {
@@ -281,5 +320,8 @@ namespace LibreriaNodos
                 return Type.GetType(String.Format("{0}, {1}", typeName, Assembly.GetExecutingAssembly().FullName));
             }
         }
+
+
+
     }
 }
