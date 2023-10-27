@@ -11,9 +11,9 @@ namespace LibreriaNodos
     {
         //atributos
 
-        private string userName;
-        private string userIpAdress;
-        private int userPort;
+        public string userName;
+        public string userIpAdress;
+        public int userPort;
 
 
         //constructor

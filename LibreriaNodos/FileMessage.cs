@@ -11,8 +11,8 @@ namespace LibreriaNodos
     {
 
         //atributos
-        private string filePath;
-        private byte[] fileData;
+        public string filePath;
+        public byte[] fileData;
        
         //constructor
         public FileMessage(string userFrom, string userTo, string messageContent, string filePath) : base(userFrom, userTo, messageContent) { 

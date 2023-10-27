@@ -11,9 +11,9 @@ namespace LibreriaNodos
     public class Message
     {
         //atributos
-        private string userFrom;
-        private string userTo;
-        private string messageContent;
+        public string userFrom;
+        public string userTo;
+        public string messageContent;
 
 
         //constructor

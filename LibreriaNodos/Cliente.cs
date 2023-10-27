@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,9 +15,9 @@ namespace LibreriaNodos
     
     public class Cliente : Nodo
     {
-        private TcpClient clientServerTcpClient;
-        private int serverPort;
-        private string serverIpAddress;
+        public Socket clientServerTcpClient;
+        public int serverPort;
+        public string serverIpAddress;
 
 
         public Cliente(User user, int serverPort, string serverIpAddress):base(user) {
@@ -27,10 +28,14 @@ namespace LibreriaNodos
 
         }
 
-        public void connServer() { 
+        public void connServer() {
 
-            this.clientServerTcpClient = new TcpClient(this.serverIpAddress, this.serverPort);
+            IPAddress localIp = IPAddress.Parse(this.serverIpAddress);
+            IPEndPoint endPoint = new IPEndPoint(localIp, this.serverPort);
+
+            this.clientServerTcpClient = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp); ;
             Send(clientServerTcpClient, localUser);
+
             ThreadPool.QueueUserWorkItem(this.HandleConn, this.clientServerTcpClient);
             
         }
@@ -39,7 +44,10 @@ namespace LibreriaNodos
         {
             if (this.FindUser(user) != null) {
 
-                TcpClient userTcpClient = new TcpClient(user.getUserIpAdress(), user.getUserPort());
+                IPAddress userIp = IPAddress.Parse(user.getUserIpAdress());
+                IPEndPoint endPoint = new IPEndPoint(userIp, user.getUserPort());
+
+                Socket userTcpClient = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 Send(userTcpClient, localUser);
                 Nodo tempNodo = new Nodo(user);
                 tempNodo.setTcpClient(clientServerTcpClient);

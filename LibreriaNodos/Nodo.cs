@@ -11,25 +11,28 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Serialization;
 
 namespace LibreriaNodos
 {
     public class Nodo
     {
         //atributos
-        protected TcpListener tcpListener;
+        public Socket socketLsiten;
 
-        protected TcpClient tcpClient { get; set; }
+        public Thread listenThread;
 
-        protected List<User> userList;
+        public Socket socketClient { get; set; }
 
-        protected List<Nodo> nodes;
+        public List<User> userList;
 
-        protected LinkedList<Message> messages;
+        public List<Nodo> nodes;
 
-        protected User localUser;
+        public LinkedList<Message> messages;
 
-        protected string fileDirectory;
+        public User localUser;
+
+        public string fileDirectory;
 
 
 
@@ -50,16 +53,27 @@ namespace LibreriaNodos
         public void start()
         {
             IPAddress localIp = IPAddress.Parse(this.localUser.getUserIpAdress());
+            IPEndPoint endPoint = new IPEndPoint(localIp, this.getLocalUser().getUserPort());
 
-            this.tcpListener = new TcpListener(localIp, this.localUser.getUserPort());
+            this.socketLsiten = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            socketLsiten.Bind(endPoint);
+
+            socketLsiten.Listen();
+
+            listenThread = new Thread(this.Listen);
+
+            listenThread.Start();
+
+           // this.tcpListener = new TcpListener(localIp, this.localUser.getUserPort());
 
             //el nodo escucha
-            tcpListener.Start();
+           // tcpListener.Start();
 
         }
         public void stop()
         {
-            tcpListener.Stop();
+            this.socketLsiten.Close();
         }
 
 
@@ -68,34 +82,42 @@ namespace LibreriaNodos
         {
 
 
-
+            Socket cliente;
 
             //si se conecta un usuario le hace un hilo
 
 
             while (true)
             {
+
+                cliente = this.socketLsiten.Accept();
+                this.listenThread = new Thread(this.HandleConn);
+                this.listenThread .Start(cliente);
+
                 //
-                TcpClient tcpClient = tcpListener.AcceptTcpClient();
+                //TcpClient tcpClient = tcpListener.AcceptTcpClient();
                 //si recibe un cliente maneja la conexion
-                ThreadPool.QueueUserWorkItem(this.HandleConn, tcpClient);
+                //ThreadPool.QueueUserWorkItem(this.HandleConn, tcpClient);
             }
 
         }
 
         //usuario que se conecta
 
-        protected void HandleConn(Object tcpClient)
+        public void HandleConn(Object tcpClient)
         {
+            
 
-            Object recived = Recive((TcpClient)tcpClient);
+            Socket client = (Socket)tcpClient;
+            Object recived;
+            recived = this.Recive(client);
 
             if (recived != null)
             {
                 if (recived is User)
                 {
                     //handle new user 
-                    this.HandleUser((User)recived, (TcpClient)tcpClient);
+                    this.HandleUser((User)recived, (Socket)tcpClient);
 
 
                 }
@@ -121,7 +143,7 @@ namespace LibreriaNodos
         //handle new user
 
         //pendiente
-        protected void HandleUser(User user, TcpClient tcpCLient)
+        public void HandleUser(User user, Socket tcpCLient)
         {
 
 
@@ -147,7 +169,7 @@ namespace LibreriaNodos
 
 
         }
-        protected User FindUser(User user)
+        public User FindUser(User user)
         {
 
 
@@ -168,7 +190,7 @@ namespace LibreriaNodos
 
 
         //handle new message
-        protected void HandleMessages(Message message)
+        public void HandleMessages(Message message)
         {
 
             if (message is FileMessage)
@@ -218,38 +240,19 @@ namespace LibreriaNodos
 
 
         //handle list users update
-        protected void HandleListUsers(List<User> users)
+        public void HandleListUsers(List<User> users)
         {
             this.userList = users;
 
         }
 
-        protected object Recive(TcpClient tcpClient)
+        public object Recive(Socket tcpClient)
         {
-            //binariza
-            BinaryFormatter formatter = new BinaryFormatter();
+            byte[] buffer = new byte[1024];
+            tcpClient.Receive(buffer);
 
-            //lo recibe en stream del cliente
-            NetworkStream stream = tcpClient.GetStream();
-            byte[] data = new byte[1024];
-            try {
-                int bytes = stream.Read(data, 0, data.Length);
-                if (bytes > 0)
-                {
-                    string recived = Encoding.UTF8.GetString(data, 0, bytes);
-                    object obj = JsonConvert.DeserializeObject<Object>(recived);
-                    return obj;
-                }
-            } catch (Exception e) {
-                Console.WriteLine(e.Message);
-                    return null;
-            }
 
-            return null;
-            //formatter.Binder = new CurrentAssemblyDeserializationBinder();
-
-            //genera el objeto y los deserializa el stream recibido
-            //Object newObj = (Object)formatter.Deserialize(stream);
+            return BinarySerialization.Deserializate(buffer);
 
 
         }
@@ -258,26 +261,16 @@ namespace LibreriaNodos
 
 
 
-        protected void Send(TcpClient tcpClient, Object objeto)
+        public void Send(Socket tcpClient, Object objeto)
         {
+            byte[] buffer = new byte[1024];
+            byte[] obj = BinarySerialization.Serializate(objeto);
 
+            Array.Copy(obj, buffer, obj.Length);
 
-            //obtiene el strem de red
-            NetworkStream stream = tcpClient.GetStream();
-            string json = JsonConvert.SerializeObject(objeto);
-            byte[] data = Encoding.UTF8.GetBytes(json);
-            stream.Write(data, 0, data.Length);
+            tcpClient.Send(buffer);
 
-
-            //binarizar 
-            //IFormatter formatter = new BinaryFormatter();
-
-
-
-            //
-
-            //envia al cliente
-            // formatter.Serialize(stream, objeto);
+            
 
 
 
@@ -290,9 +283,9 @@ namespace LibreriaNodos
             return this.localUser;
         }
 
-        public TcpClient GetTcpClient()
+        public Socket GetTcpClient()
         {
-            return this.tcpClient;
+            return this.socketClient;
         }
 
         public List<User> GetUsers()
@@ -301,9 +294,9 @@ namespace LibreriaNodos
         }
 
         //setters
-        public void setTcpClient(TcpClient tcpClient)
+        public void setTcpClient(Socket tcpClient)
         {
-            this.tcpClient = tcpClient;
+            this.socketClient = tcpClient;
 
         }
 
